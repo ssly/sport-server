@@ -1,10 +1,11 @@
 # 运动接口详情
 
-## 1.1 获取打卡记录列表
+## 1 运动接口
+### 1.1 获取打卡记录列表
 
 GET /api/sport/get-record
 
-### 请求参数
+#### 请求参数
 格式
 ```json
 {
@@ -18,7 +19,7 @@ GET /api/sport/get-record
 /api/sport/get-record?year=2018&month=8&date=25
 ```
 
-### 返回结果
+#### 返回结果
 ```json
 {
   "code": 0,
@@ -32,14 +33,14 @@ GET /api/sport/get-record
 }
 ```
 
-- data内返回所选范围内所有天的打卡情况
+- data内返回所选范围内所有天的打卡情况
 
 
-## 1.2 保存打卡记录列表
+### 1.2 保存打卡记录列表
 
 POST /api/sport/update-record
 
-### 请求参数（body体）
+#### 请求参数（body体）
 
 格式
 ```json
@@ -58,7 +59,7 @@ POST /api/sport/update-record
   "date": 25
 }
 ```
-### 返回结果
+#### 返回结果
 
 ```json
 {
@@ -70,3 +71,22 @@ POST /api/sport/update-record
 - isPunch表示
     - true 当日已打卡
     - false 取消当日打卡
+
+## 2. 登录接口
+### 2.1 登录系统
+
+POST /api/sign-in
+
+#### 请求参数
+
+#### 返回结果
+
+```json
+{
+  "code": 0,
+  "data": {
+    "name": "xxx",
+    "icon": "https://xxx.jpg",
+    "token": "xxxxxxxxx"
+  }
+}

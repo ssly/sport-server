@@ -15,7 +15,7 @@ var session *mgo.Session
 
 func init() {
 	// 初始化数据库
-	_session, err := mgo.Dial(url)
+	_session, err := mgo.Dial(url + "/" + db)
 	if err != nil {
 		fmt.Println("db/mango.go: connect db error.")
 	}

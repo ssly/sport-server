@@ -11,12 +11,18 @@ import (
 	"strconv"
 	"time"
 
+	. "sport/middlewares"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
 var (
 	port = "5432"
 )
+
+func signIn(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("sign success"))
+}
 
 // 获取打卡记录
 // param {string} year
@@ -67,7 +73,8 @@ func gerRecord(w http.ResponseWriter, r *http.Request) {
 // 保存打卡记录
 func updateRecord(w http.ResponseWriter, r *http.Request) {
 	var err error
-	body, _ := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	bodyBytes, _ := ioutil.ReadAll(r.Body)
 	type Body struct {
 		Year  int `json:"year"`
 		Month int `json:"month"`
@@ -75,7 +82,7 @@ func updateRecord(w http.ResponseWriter, r *http.Request) {
 	}
 	var bodyItem Body
 
-	json.Unmarshal(body, &bodyItem)
+	json.Unmarshal(bodyBytes, &bodyItem)
 
 	// 如果没有传入年月日，则默认取当天的年月日
 	if bodyItem.Year == 0 {
@@ -140,8 +147,12 @@ func updateRecord(w http.ResponseWriter, r *http.Request) {
 func startServer() {
 
 	fmt.Println("start server at " + port)
-	http.HandleFunc("/sport/get-record", gerRecord)       // 获取打卡记录
-	http.HandleFunc("/sport/update-record", updateRecord) // 保存打卡记录
+	// 登录接口
+	http.Handle("/api/sign-in", LogMiddleware(http.HandlerFunc(signIn)))
+	// 获取打卡记录
+	http.Handle("/api/sport/get-record", LogMiddleware(http.HandlerFunc(gerRecord)))
+	// 保存打卡记录
+	http.Handle("/api/sport/update-record", LogMiddleware(http.HandlerFunc(updateRecord)))
 
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {

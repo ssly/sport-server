@@ -1,2 +1,15 @@
-### v1.0.0 2018.08.25
-1. 增加打卡接口及获取打卡列表接口
+小程序《运动图表》后端服务
+
+### 运行
+
+1. 进入`$GOPATH/src`目录
+
+2. 下载项目
+```bash
+git clone https://github.com/ssly/sport-server.git sport
+```
+
+3. 运行项目
+```bash
+cd sport && go run main.go
+```
