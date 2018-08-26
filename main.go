@@ -37,7 +37,7 @@ func gerRecord(w http.ResponseWriter, r *http.Request) {
 	month, _ := strconv.Atoi(r.Form.Get("month"))
 	// date, _ := strconv.Atoi(r.Form.Get("date")) // TODO 增加按天过滤
 
-	dayInCurMonth := utils.GetDayInMonthOf(month)
+	dayInCurMonth := utils.GetDayInMonthOf(year, month)
 
 	type Result struct {
 		Year    int  `json:"year"`
@@ -67,7 +67,7 @@ func gerRecord(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Write(formatResult(defaultList))
+	w.Write(utils.FormatResult(defaultList))
 }
 
 // 保存打卡记录
@@ -95,7 +95,7 @@ func updateRecord(w http.ResponseWriter, r *http.Request) {
 		bodyItem.Date = time.Now().Day()
 	}
 
-	currentTime := time.Now().UnixNano() / 1000000 // 时间戳
+	currentTime := time.Now().UnixNano() / 1000000 // ms时间戳
 	queryItem := bson.M{
 		"year":  bodyItem.Year,
 		"month": bodyItem.Month,
@@ -141,7 +141,7 @@ func updateRecord(w http.ResponseWriter, r *http.Request) {
 		res.IsPunch = false
 	}
 
-	w.Write(formatResult(res))
+	w.Write(utils.FormatResult(res))
 }
 
 func startServer() {
@@ -158,21 +158,6 @@ func startServer() {
 	if err != nil {
 		log.Fatal("Listen Error")
 	}
-}
-
-func formatResult(v interface{}) []byte {
-	result := &struct {
-		Code byte        `json:"code"`
-		Date interface{} `json:"date"`
-	}{
-		Code: 0,
-		Date: v,
-	}
-	message, err := json.Marshal(result)
-	if err != nil {
-		fmt.Println("json.Marshal error.")
-	}
-	return message
 }
 
 func main() {
