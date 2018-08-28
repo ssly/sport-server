@@ -9,10 +9,10 @@ import (
 func FormatResult(v interface{}) []byte {
 	result := &struct {
 		Code byte        `json:"code"`
-		Date interface{} `json:"date"`
+		Data interface{} `json:"data"`
 	}{
 		Code: 0,
-		Date: v,
+		Data: v,
 	}
 	message, err := json.Marshal(result)
 	if err != nil {
