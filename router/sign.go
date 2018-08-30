@@ -28,7 +28,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(bodyBytes, &body)
 	if body.Iv == "" {
 		w.WriteHeader(400)
-		w.Write(utils.FormatResult("Sign in error."))
+		w.Write(utils.FormatResult(1, "Sign in error."))
 		return
 	}
 
@@ -60,5 +60,10 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 	user.AddUser(body.Iv, cookie)
 
 	http.SetCookie(w, cookie)
-	w.Write(utils.FormatResult(token))
+	result := struct {
+		Token string `json:"token"`
+	}{
+		Token: token,
+	}
+	w.Write(utils.FormatResult(0, result))
 }

@@ -6,12 +6,12 @@ import (
 )
 
 // FormatResult 格式化http返回参数
-func FormatResult(v interface{}) []byte {
+func FormatResult(code int, v interface{}) []byte {
 	result := &struct {
-		Code byte        `json:"code"`
+		Code int         `json:"code"`
 		Data interface{} `json:"data"`
 	}{
-		Code: 0,
+		Code: code,
 		Data: v,
 	}
 	message, err := json.Marshal(result)

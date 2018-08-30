@@ -35,7 +35,7 @@ func gerRecord(w http.ResponseWriter, r *http.Request) {
 	}
 	if hasUser == -1 {
 		w.WriteHeader(403)
-		w.Write(utils.FormatResult("用户未授权"))
+		w.Write(utils.FormatResult(1, "用户未授权"))
 		return
 	}
 
@@ -76,7 +76,7 @@ func gerRecord(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Write(utils.FormatResult(defaultList))
+	w.Write(utils.FormatResult(0, defaultList))
 }
 
 // 保存打卡记录
@@ -150,7 +150,7 @@ func updateRecord(w http.ResponseWriter, r *http.Request) {
 		res.IsPunch = false
 	}
 
-	w.Write(utils.FormatResult(res))
+	w.Write(utils.FormatResult(0, res))
 }
 
 func startServer() {
