@@ -7,11 +7,13 @@ import (
 	"log"
 	"net/http"
 	db "sport/db"
+	"sport/router"
+	"sport/user"
 	"sport/utils"
 	"strconv"
 	"time"
 
-	. "sport/middlewares"
+	mw "sport/middlewares"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -20,17 +22,22 @@ var (
 	port = "5432"
 )
 
-func signIn(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("sign success"))
-}
-
 // 获取打卡记录
 // param {string} year
 // param {string} month
 // returns {array} 每天的打卡情况 [0, 1, 1, ...]
 func gerRecord(w http.ResponseWriter, r *http.Request) {
-	session := db.Session()
-	defer session.Close()
+	// 获取Cookie
+	cookie, err := r.Cookie("S-Access-Token")
+	hasUser := -1
+	if err == nil {
+		hasUser = user.HasUserByCookie(cookie)
+	}
+	if hasUser == -1 {
+		w.WriteHeader(403)
+		w.Write(utils.FormatResult("用户未授权"))
+		return
+	}
 
 	r.ParseForm()
 	year, _ := strconv.Atoi(r.Form.Get("year"))
@@ -47,6 +54,8 @@ func gerRecord(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resultList := make([]Result, dayInCurMonth)
+	session := db.Session()
+	defer session.Close()
 	c := session.DB("ly").C("sport_result")
 	c.Find(bson.M{
 		"year":  year,
@@ -148,11 +157,11 @@ func startServer() {
 
 	fmt.Println("start server at " + port)
 	// 登录接口
-	http.Handle("/api/sign-in", LogMiddleware(http.HandlerFunc(signIn)))
+	http.Handle("/api/sign-in", mw.LogMiddleware(http.HandlerFunc(router.SignIn)))
 	// 获取打卡记录
-	http.Handle("/api/sport/get-record", LogMiddleware(http.HandlerFunc(gerRecord)))
+	http.Handle("/api/sport/get-record", mw.LogMiddleware(http.HandlerFunc(gerRecord)))
 	// 保存打卡记录
-	http.Handle("/api/sport/update-record", LogMiddleware(http.HandlerFunc(updateRecord)))
+	http.Handle("/api/sport/update-record", mw.LogMiddleware(http.HandlerFunc(updateRecord)))
 
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
