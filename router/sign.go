@@ -2,6 +2,7 @@ package router
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -13,39 +14,68 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+const wechatURL = "https://api.weixin.qq.com/sns/jscode2session"
+
+var (
+	appID     string
+	appSecret string
+)
+
+func init() {
+	// 数据库获取 AppID, appSecret
+	session := db.Session()
+	defer session.Close()
+	result := struct {
+		AppID     string `bson:"appId"`
+		AppSecret string `bson:"appSecret"`
+	}{}
+	c := session.DB("ly").C("sport_wechat")
+	err := c.Find(nil).One(&result)
+	if err != nil {
+		fmt.Println("获取小程序参数失败")
+	}
+
+	appID = result.AppID
+	appSecret = result.AppSecret
+}
+
 // SignIn 登录接口
 func SignIn(w http.ResponseWriter, r *http.Request) {
 	// var err error
 	defer r.Body.Close()
 	bodyBytes, _ := ioutil.ReadAll(r.Body)
 	type Body struct {
-		EncryptedData string `json:"encryptedData"`
-		Iv            string `json:"iv"`
-		RawData       string `json:"rawData"`
-		Signature     string `json:"signature"`
+		Code    string `json:"code"`
+		RawData string `json:"rawData"`
 	}
 	var body Body
 	json.Unmarshal(bodyBytes, &body)
-	if body.Iv == "" {
+	if body.RawData == "" || body.Code == "" {
 		w.WriteHeader(400)
 		w.Write(utils.FormatResult(1, "Sign in error."))
+		return
+	}
+
+	// 获取微信小程序openid
+	openID := GetWechatInfo(body.Code)
+	if openID == "" {
+		w.WriteHeader(400)
+		w.Write(utils.FormatResult(1, "openid 获取失败"))
 		return
 	}
 
 	session := db.Session()
 	defer session.Close()
 	userItem := struct {
-		Iv string `json:"iv"`
+		OpenID string `bson:"openId"`
 	}{}
 	c := session.DB("ly").C("sport_user")
-	c.Find(bson.M{"iv": body.Iv}).One(&userItem)
+	c.Find(bson.M{"openId": openID}).One(&userItem)
 	// 未存在用户
-	if userItem.Iv == "" {
+	if userItem.OpenID == "" {
 		c.Insert(bson.M{
-			"iv":            body.Iv,
-			"rawData":       body.RawData,
-			"encryptedData": body.EncryptedData,
-			"signature":     body.Signature,
+			"openId":  openID,
+			"rawData": body.RawData,
 		})
 	}
 	// 生成随机token
@@ -57,7 +87,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	}
 	// 如果登录成功，保存session
-	user.AddUser(body.Iv, cookie)
+	user.AddUser(openID, cookie)
 
 	http.SetCookie(w, cookie)
 	result := struct {
@@ -66,4 +96,21 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 		Token: token,
 	}
 	w.Write(utils.FormatResult(0, result))
+}
+
+// GetWechatInfo 获取微信openid
+func GetWechatInfo(code string) string {
+	params := "?appid=" + appID + "&secret=" + appSecret + "&js_code=" + code + "&grant_type=authorization_code"
+	resp, err := http.Get(wechatURL + params)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	body := struct {
+		OpenID     string `json:"openid"`
+		SessionKey string `json:"session_key"`
+	}{}
+	json.Unmarshal(bodyBytes, &body)
+	return body.OpenID
 }

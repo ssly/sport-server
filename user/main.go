@@ -1,7 +1,6 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -15,7 +14,6 @@ var userList []User
 
 func init() {
 	userList = make([]User, 0)
-	fmt.Println(userList)
 }
 
 // AddUser 添加用户
@@ -30,7 +28,6 @@ func AddUser(uuid string, cookie *http.Cookie) {
 	} else {
 		userList[index].Cookie = cookie
 	}
-	fmt.Println(userList)
 }
 
 // HasUserByUUID 用户是否存在
