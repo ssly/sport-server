@@ -29,38 +29,49 @@ var (
 func gerRecord(w http.ResponseWriter, r *http.Request) {
 	// 获取Cookie
 	cookie, err := r.Cookie("S-Access-Token")
-	hasUser := -1
+	var userItem user.User
 	if err == nil {
-		hasUser = user.HasUserByCookie(cookie)
+		userItem = user.GetUserInfoByCookie(cookie)
 	}
-	if hasUser == -1 {
+	if userItem.UUID == "" {
 		w.WriteHeader(403)
 		w.Write(utils.FormatResult(1, "用户未授权"))
 		return
 	}
 
-	r.ParseForm()
-	year, _ := strconv.Atoi(r.Form.Get("year"))
-	month, _ := strconv.Atoi(r.Form.Get("month"))
-	// date, _ := strconv.Atoi(r.Form.Get("date")) // TODO 增加按天过滤
-
-	dayInCurMonth := utils.GetDayInMonthOf(year, month)
-
 	type Result struct {
 		Year    int  `json:"year"`
 		Month   int  `json:"month"`
 		Date    int  `json:"date"`
-		IsPunch bool `json:"isPunch"`
+		IsPunch bool `json:"isPunch" bson:"isPunch"`
 	}
-
-	resultList := make([]Result, dayInCurMonth)
 	session := db.Session()
 	defer session.Close()
-	c := session.DB("ly").C("sport_result")
+	c := session.DB("ly").C("sport_result_" + userItem.UUID)
+
+	r.ParseForm()
+	year, _ := strconv.Atoi(r.Form.Get("year"))
+	month, _ := strconv.Atoi(r.Form.Get("month"))
+
+	if r.Form.Get("date") != "" {
+		var resultItem Result
+		// 只需要查询一天数据
+		date, _ := strconv.Atoi(r.Form.Get("date"))
+		c.Find(bson.M{
+			"year":  year,
+			"month": month,
+			"date":  date,
+		}).One(&resultItem)
+		w.Write(utils.FormatResult(0, resultItem))
+		return
+	}
+
+	dayInCurMonth := utils.GetDayInMonthOf(year, month)
+	resultList := make([]Result, dayInCurMonth)
+
 	c.Find(bson.M{
 		"year":  year,
 		"month": month,
-		// "date": date,
 	}).All(&resultList)
 
 	defaultList := make([]Result, dayInCurMonth)
@@ -82,6 +93,21 @@ func gerRecord(w http.ResponseWriter, r *http.Request) {
 // 保存打卡记录
 func updateRecord(w http.ResponseWriter, r *http.Request) {
 	var err error
+	// 获取用户信息，建立对应的表
+	cookie, err := r.Cookie("S-Access-Token")
+	var userItem user.User
+	if err == nil {
+		userItem = user.GetUserInfoByCookie(cookie)
+	}
+	if userItem.UUID == "" {
+		w.WriteHeader(403)
+		w.Write(utils.FormatResult(1, "用户未授权"))
+		return
+	}
+
+	session := db.Session()
+	defer session.Close()
+
 	defer r.Body.Close()
 	bodyBytes, _ := ioutil.ReadAll(r.Body)
 	type Body struct {
@@ -111,16 +137,13 @@ func updateRecord(w http.ResponseWriter, r *http.Request) {
 		"date":  bodyItem.Date,
 	}
 
-	session := db.Session()
-	defer session.Close()
-
 	todayItem := make(map[string]interface{})
 
 	// 返回给前端的数据
 	var res struct {
 		IsPunch bool `json:"isPunch"`
 	}
-	c := session.DB("ly").C("sport_result")
+	c := session.DB("ly").C("sport_result_" + userItem.UUID)
 	err = c.Find(queryItem).One(&todayItem)
 
 	if todayItem["isPunch"] == nil {

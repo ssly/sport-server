@@ -51,3 +51,14 @@ func HasUserByCookie(cookie *http.Cookie) int {
 	}
 	return index
 }
+
+// GetUserInfoByCookie 获取用户信息
+func GetUserInfoByCookie(cookie *http.Cookie) User {
+	var user User
+	for _, v := range userList {
+		if v.Cookie.Name == cookie.Name && v.Cookie.Value == cookie.Value {
+			user = v
+		}
+	}
+	return user
+}

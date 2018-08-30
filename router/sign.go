@@ -67,7 +67,8 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 	session := db.Session()
 	defer session.Close()
 	userItem := struct {
-		OpenID string `bson:"openId"`
+		ID     bson.ObjectId `json:"id" bson:"_id"`
+		OpenID string        `bson:"openId"`
 	}{}
 	c := session.DB("ly").C("sport_user")
 	c.Find(bson.M{"openId": openID}).One(&userItem)
@@ -77,7 +78,11 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 			"openId":  openID,
 			"rawData": body.RawData,
 		})
+		// 查询用户数据的ID
+		c.Find(bson.M{"openId": openID}).One(&userItem)
 	}
+	fmt.Println("登录成功啊", userItem.ID.Hex())
+
 	// 生成随机token
 	token := strconv.Itoa(rand.Intn(10000))
 
@@ -87,7 +92,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	}
 	// 如果登录成功，保存session
-	user.AddUser(openID, cookie)
+	user.AddUser(userItem.ID.Hex(), cookie)
 
 	http.SetCookie(w, cookie)
 	result := struct {
